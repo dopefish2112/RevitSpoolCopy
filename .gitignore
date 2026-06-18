@@ -1,0 +1,30 @@
+## .NET / MSBuild
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.nuget.dgspec.json
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+*.csproj.FileListAbsolute.txt
+
+## VS Code
+.vscode/
+*.swp
+*.swo
+
+## VS
+.vs/
+*.user
+*.userprefs
+
+## IDE
+.idea/
+*.iml
+
+## macOS
+.DS_Store
+
+## Project-specific
+*.dll.config
