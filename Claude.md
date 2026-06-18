@@ -99,6 +99,36 @@ test, on `windows-latest`. No Revit install required (NuGet ref assemblies).
 - [ ] Release notes and version tagging
 - [ ] Revit App Store publishing (optional)
 
+### Phase 4 (Planned) — Spool-driven export & publishing
+Extend **Batch Operations** to act on a selected group of spools (multi-select from the
+spool list, like SpoolManager's grouping). Two new operations:
+
+1. **Export spools to MAJ (Fabrication job export)**
+   - Gather all Fabrication MEP parts whose Spool designation matches the selected spools.
+   - Invoke the **MAJ fabrication export** — the export function that ships with the Revit
+     **Fabrication extension** (Autodesk Fabrication `.MAJ` job file). Need to confirm the
+     extension's public API/entry point and whether it's callable from an add-in or only
+     via its own UI; may require referencing the extension assembly or shelling out.
+   - Open question: one MAJ per spool, or one MAJ for the whole selection? (Likely per-spool
+     to match spool designations.)
+
+2. **Create publish set + isolated view per spool selection**
+   - Generate a new view containing *only* the parts in the selected spools (everything else
+     hidden/isolated — probably a 3D view with a filter or temporary isolate baked in).
+   - Add that view to a **new publish set** (Sheet/View set used for publishing/exporting).
+   - The view will likely have to be generated programmatically (duplicate a template 3D
+     view, apply a spool-based filter, name it after the spool).
+
+Implementation notes / unknowns to resolve before building:
+- MAJ export: locate the Fabrication-extension API surface (assembly name, namespace,
+  the export method). This is the riskiest unknown — confirm it's automatable.
+- "Publish set": confirm whether this means a Revit **View/Sheet Set** (ViewSheetSet) or an
+  export-specific publish set. Implement via `ViewSheetSet` + `PrintManager`/export if the
+  former.
+- View generation: `View3D.CreateIsometric` + `ParameterFilterElement` keyed on the Spool
+  shared parameter (added in Phase 3) to show only matching parts.
+- UI: BatchOperationsDialog needs a spool multi-select (reuse SpoolManager's spool listing).
+
 ### Testability pattern
 Revit types (Element/FabricationPart/Parameter) are sealed with no public ctors, so they
 can't be mocked directly. Decision logic lives in `ParameterLogic` over the Revit-free
