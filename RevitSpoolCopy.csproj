@@ -9,10 +9,6 @@
     <PlatformTarget>x64</PlatformTarget>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Configuration Condition="'$(Configuration)'==''">Release</Configuration>
-
-    <!-- Point at any installed Revit (>=2025) to compile. Override at build time:
-         dotnet build -p:RevitDir="C:\Program Files\Autodesk\Revit 2026" -->
-    <RevitDir Condition="'$(RevitDir)'==''">C:\Program Files\Autodesk\Revit 2025</RevitDir>
   </PropertyGroup>
 
   <!-- Test project nested in this dir. Exclude from default compile glob. -->
@@ -21,15 +17,15 @@
     <None Remove="RevitSpoolCopy.Tests\**" />
   </ItemGroup>
 
+  <!-- Reference-only Revit API assemblies from NuGet. No local Revit install needed
+       to compile (CI-friendly). PrivateAssets=all keeps them out of build output. -->
   <ItemGroup>
-    <Reference Include="RevitAPI">
-      <HintPath>$(RevitDir)\RevitAPI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="RevitAPIUI">
-      <HintPath>$(RevitDir)\RevitAPIUI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2025.*">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2025.*">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

@@ -48,14 +48,16 @@ RevitSpoolCopy/
 - Clean separation: one button per command
 
 ### Build & Deploy
+Revit API assemblies come from NuGet (`Nice3point.Revit.Api.RevitAPI/RevitAPIUI`,
+reference-only) — no local Revit install needed to compile. This also makes CI work.
 ```powershell
-# Build for Revit 2025 (default)
+# Build the add-in
 dotnet build -c Release
 
-# Build for Revit 2026
-dotnet build -c Release -p:RevitDir="C:\Program Files\Autodesk\Revit 2026"
+# Run unit tests
+dotnet test RevitSpoolCopy.Tests/RevitSpoolCopy.Tests.csproj
 
-# Install for all Revit versions
+# Build + install for all installed Revit versions
 .\deploy.ps1
 
 # Install for specific version
@@ -63,6 +65,10 @@ dotnet build -c Release -p:RevitDir="C:\Program Files\Autodesk\Revit 2026"
 ```
 
 Output: `bin\Release\RevitSpoolCopy.dll` (x64, single DLL for 2025/2026/2027)
+
+### CI
+`.github/workflows/ci.yml` runs on push/PR to master: restore → build (Release) →
+test, on `windows-latest`. No Revit install required (NuGet ref assemblies).
 
 ### Phase 1 (Complete)
 ✅ Refactored to modular, extensible architecture
@@ -82,14 +88,14 @@ Output: `bin\Release\RevitSpoolCopy.dll` (x64, single DLL for 2025/2026/2027)
 ✅ SpoolManagerCommand (list/rename/delete spools across model)
 ✅ SpoolManagerDialog.xaml (DataGrid with spool counts)
 
-### Phase 3 (Next)
-- [ ] Unit tests for core logic (ParameterDiscoveryHelper, FabricationPartHelper)
-- [ ] GitHub Actions CI/CD (build on every commit)
+### Phase 3 (In Progress)
+✅ xUnit test project (RevitSpoolCopy.Tests) + RevitSpoolCopy.sln
+✅ 12 passing tests (ParameterMappingConfig round-trip, BatchOperation, ParameterMapping)
+✅ Revit API via NuGet ref assemblies (CI-friendly, no local Revit to compile)
+✅ GitHub Actions CI (.github/workflows/ci.yml: restore/build/test on push+PR)
+- [ ] Tests for ParameterDiscoveryHelper / FabricationPartHelper — blocked: these take
+      sealed Revit types (Element/FabricationPart/Document) with no interfaces/ctors.
+      Needs a refactor to extract pure logic, or Revit-runtime integration tests.
 - [ ] Release notes and version tagging
 - [ ] Revit App Store publishing (optional)
-
-## Next Steps
-1. Commit refactoring to main branch
-2. Create dev branch for Phase 2 features
-3. Implement MapParametersCommand with UI
 

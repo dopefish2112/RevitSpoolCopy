@@ -8,16 +8,9 @@ param(
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 
-# Pick any installed Revit (>=2025) to compile against.
-$compileDir = $null
-foreach ($v in @("2025","2026","2027")) {
-    $d = "C:\Program Files\Autodesk\Revit $v"
-    if (Test-Path "$d\RevitAPI.dll") { $compileDir = $d; break }
-}
-if (-not $compileDir) { throw "No Revit 2025-2027 install found to compile against." }
-Write-Host "Compiling against: $compileDir"
-
-dotnet build "$root\RevitSpoolCopy.csproj" -c Release -p:RevitDir="$compileDir"
+# Revit API assemblies come from NuGet (reference-only) - no local Revit
+# install needed to compile.
+dotnet build "$root\RevitSpoolCopy.csproj" -c Release
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
 $dll = "$root\bin\Release\RevitSpoolCopy.dll"
