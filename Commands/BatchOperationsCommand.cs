@@ -70,8 +70,16 @@ namespace RevitSpoolCopy.Commands
                 .Select(g => new SpoolInfo { SpoolName = g.Key, PartCount = g.Count() })
                 .ToList();
 
+            // Existing view names (to reject a duplicate name for the publish-set view).
+            var existingViewNames = new FilteredElementCollector(doc)
+                .OfClass(typeof(View))
+                .Cast<View>()
+                .Where(v => !v.IsTemplate)
+                .Select(v => v.Name)
+                .ToList();
+
             // Show dialog to select operation
-            var dialog = new BatchOperationsDialog(spoolGroups);
+            var dialog = new BatchOperationsDialog(spoolGroups, existingViewNames);
             bool? result = dialog.ShowDialog();
 
             if (result != true)
@@ -104,7 +112,7 @@ namespace RevitSpoolCopy.Commands
                 case BatchOperationType.ExportMajBySpool:
                     return ExecuteExportMaj(doc, allParts, operation.SelectedSpools);
                 case BatchOperationType.CreatePublishSetBySpool:
-                    return ExecuteCreatePublishSet(doc, allParts, operation.SelectedSpools);
+                    return ExecuteCreatePublishSet(doc, allParts, operation.SelectedSpools, operation.TargetValue);
                 default:
                     return false;
             }
@@ -177,7 +185,7 @@ namespace RevitSpoolCopy.Commands
             return failures.Count == 0;
         }
 
-        private bool ExecuteCreatePublishSet(Document doc, List<FabricationPart> allParts, List<string> selectedSpools)
+        private bool ExecuteCreatePublishSet(Document doc, List<FabricationPart> allParts, List<string> selectedSpools, string viewName)
         {
             // Union of all selected spools' parts -> a single isolated 3D view.
             var ids = SpoolExportLogic.CollectIdsForSpools(
@@ -190,7 +198,10 @@ namespace RevitSpoolCopy.Commands
                 return false;
             }
 
-            string name = SpoolExportLogic.CombinedViewName(selectedSpools);
+            // View name was entered (and uniqueness-validated) in the dialog; fall back just in case.
+            string name = string.IsNullOrWhiteSpace(viewName)
+                ? SpoolExportLogic.CombinedViewName(selectedSpools)
+                : viewName;
 
             View3D view;
             using (var t = new Transaction(doc, "Create Spool View"))

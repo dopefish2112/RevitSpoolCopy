@@ -52,6 +52,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <DockPanel Grid.Row="0" Margin="0,0,0,6">
                     <TextBlock Text="Select spools:" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -71,6 +72,11 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Border>
+                <!-- View name (publish-set op only) -->
+                <StackPanel Grid.Row="2" Name="ViewNamePanel" Visibility="Collapsed" Margin="0,8,0,0">
+                    <TextBlock Text="New 3D view name:" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <TextBox Name="ViewNameTextBox" Padding="6" FontSize="12"/>
+                </StackPanel>
             </Grid>
         </Grid>
 
