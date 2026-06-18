@@ -72,21 +72,21 @@ Output: `bin\Release\RevitSpoolCopy.dll` (x64, single DLL for 2025/2026/2027)
 ✅ Single CommandRouter entry point
 ✅ Build succeeds, single DLL works across Revit versions
 
-### Phase 2 (In Progress)
+### Phase 2 (Complete)
 ✅ MapParametersCommand with WPF dialog
 ✅ ParameterMapping model & JSON persistence
 ✅ ParameterDiscoveryHelper (read/write/filter params)
 ✅ MapParametersDialog.xaml (source → target dropdowns)
-- [ ] BatchOperationsCommand with operation selection
-- [ ] Progress dialog for large selections
-- [ ] SpoolManager command (list/edit all spools in model)
+✅ BatchOperationsCommand with three operations (Clear/Set/Report)
+✅ BatchOperationsDialog.xaml (radio buttons + value input)
+✅ SpoolManagerCommand (list/rename/delete spools across model)
+✅ SpoolManagerDialog.xaml (DataGrid with spool counts)
 
-### Phase 3 (Future)
-- [ ] SpoolManager command (list/edit all spools in model)
-- [ ] Unit tests
-- [ ] GitHub Actions CI/CD
-- [ ] Release notes and installer
-- [ ] Revit App Store publishing (maybe)
+### Phase 3 (Next)
+- [ ] Unit tests for core logic (ParameterDiscoveryHelper, FabricationPartHelper)
+- [ ] GitHub Actions CI/CD (build on every commit)
+- [ ] Release notes and version tagging
+- [ ] Revit App Store publishing (optional)
 
 ## Next Steps
 1. Commit refactoring to main branch
