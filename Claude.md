@@ -10,12 +10,15 @@ RevitSpoolCopy/
 │   ├── ICommand.cs             (interface for all commands)
 │   ├── CommandRouter.cs        (IExternalCommand, dispatches to commands)
 │   ├── CopyAssemblyNameCommand.cs  (MVP: copy Assembly Name → Spool)
-│   ├── MapParametersCommand.cs (stub: coming Phase 2)
-│   └── BatchOperationsCommand.cs (stub: coming Phase 2)
+│   ├── MapParametersCommand.cs (Phase 2a: map any param → any param)
+│   └── BatchOperationsCommand.cs (stub: coming Phase 2b)
 ├── Models/
-│   └── FabricationPartHelper.cs (parameter read/write logic)
+│   ├── FabricationPartHelper.cs (parameter read/write/filter logic)
+│   ├── ParameterMapping.cs (mapping rule model)
+│   ├── ParameterMappingConfig.cs (JSON persistence)
+│   └── ParameterDiscoveryHelper.cs (param discovery & CRUD)
 ├── UI/
-│   └── [dialogs, forms - Phase 2+]
+│   └── MapParametersDialog.xaml/.xaml.cs (WPF dialog for mapping selection)
 └── deploy.ps1, spec.md, README.md, .gitignore
 ```
 
@@ -69,12 +72,14 @@ Output: `bin\Release\RevitSpoolCopy.dll` (x64, single DLL for 2025/2026/2027)
 ✅ Single CommandRouter entry point
 ✅ Build succeeds, single DLL works across Revit versions
 
-### Phase 2 (Next)
-- [ ] MapParametersCommand with UI dialog
-- [ ] ParameterMapping model (source param → target param)
-- [ ] Parameter mapping storage (JSON config file)
+### Phase 2 (In Progress)
+✅ MapParametersCommand with WPF dialog
+✅ ParameterMapping model & JSON persistence
+✅ ParameterDiscoveryHelper (read/write/filter params)
+✅ MapParametersDialog.xaml (source → target dropdowns)
 - [ ] BatchOperationsCommand with operation selection
 - [ ] Progress dialog for large selections
+- [ ] SpoolManager command (list/edit all spools in model)
 
 ### Phase 3 (Future)
 - [ ] SpoolManager command (list/edit all spools in model)
