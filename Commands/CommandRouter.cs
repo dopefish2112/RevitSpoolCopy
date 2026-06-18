@@ -3,6 +3,7 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using RevitSpoolCopy.Commands;
+using RevitSpoolCopy.Models;
 
 namespace RevitSpoolCopy
 {
@@ -45,15 +46,18 @@ namespace RevitSpoolCopy
                     return Result.Failed;
                 }
 
+                Logger.Info($"Execute '{cmd.Id}' begin");
                 string msg = "";
                 bool success = cmd.Execute(uidoc, msg);
                 message = msg;
+                Logger.Info($"Execute '{cmd.Id}' end -> {(success ? "Succeeded" : "Failed")}");
 
                 return success ? Result.Succeeded : Result.Failed;
             }
             catch (Exception ex)
             {
-                message = $"Error: {ex.Message}";
+                Logger.Error("CommandRouter.Execute", ex);
+                message = $"Error: {ex.Message}\n\nDetails logged to:\n{Logger.LogFilePath}";
                 return Result.Failed;
             }
         }

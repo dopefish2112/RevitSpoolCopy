@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using Autodesk.Revit.UI;
 using RevitSpoolCopy.Commands;
+using RevitSpoolCopy.Models;
 
 namespace RevitSpoolCopy
 {
@@ -17,6 +18,8 @@ namespace RevitSpoolCopy
         {
             try
             {
+                Logger.Info($"OnStartup begin (v{Assembly.GetExecutingAssembly().GetName().Version})");
+
                 // Ensure ribbon tab exists
                 try { app.CreateRibbonTab(RibbonTabName); }
                 catch { /* tab already exists */ }
@@ -31,11 +34,14 @@ namespace RevitSpoolCopy
                 AddCommandButton(panel, new BatchOperationsCommand());
                 AddCommandButton(panel, new SpoolManagerCommand());
 
+                Logger.Info("OnStartup end -> ribbon loaded, 4 buttons");
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
-                TaskDialog.Show("RevitSpoolCopy Error", $"Failed to load addin:\n{ex.Message}");
+                Logger.Error("App.OnStartup", ex);
+                TaskDialog.Show("RevitSpoolCopy Error",
+                    $"Failed to load addin:\n{ex.Message}\n\nDetails logged to:\n{Logger.LogFilePath}");
                 return Result.Failed;
             }
         }

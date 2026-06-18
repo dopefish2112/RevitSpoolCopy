@@ -27,16 +27,19 @@ namespace RevitSpoolCopy.Commands
         {
             try
             {
+                Logger.Info("Execute 'SpoolManager' begin");
                 UIApplication uiApp = commandData.Application;
                 UIDocument uidoc = uiApp.ActiveUIDocument;
                 string msg = "";
                 bool success = Execute(uidoc, msg);
                 message = msg;
+                Logger.Info($"Execute 'SpoolManager' end -> {(success ? "Succeeded" : "Failed")}");
                 return success ? Result.Succeeded : Result.Failed;
             }
             catch (Exception ex)
             {
-                message = $"Error: {ex.Message}";
+                Logger.Error("SpoolManagerCommand.Execute", ex);
+                message = $"Error: {ex.Message}\n\nDetails logged to:\n{Logger.LogFilePath}";
                 return Result.Failed;
             }
         }
