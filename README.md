@@ -7,9 +7,8 @@ Autodesk Revit addin (2025-2027) that copies "Assembly Name" parameter values to
 ### Build
 ```powershell
 dotnet build RevitSpoolCopy.csproj -c Release
-# Or override Revit version:
-dotnet build -c Release -p:RevitDir="C:\Program Files\Autodesk\Revit 2026"
 ```
+Revit API assemblies come from NuGet (reference-only) — no local Revit install needed to build.
 
 ### Install
 ```powershell
@@ -26,6 +25,7 @@ Then restart Revit. Button appears in **Spool Tools** ribbon tab.
 ## Documentation
 - [spec.md](spec.md) — Feature spec & architecture
 - [Claude.md](Claude.md) — Dev notes & build walkthrough
+- [CHANGELOG.md](CHANGELOG.md) — Release history
 
 ## License
 MIT
