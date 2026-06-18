@@ -49,19 +49,13 @@ namespace RevitSpoolCopy
         public Result OnShutdown(UIControlledApplication app) => Result.Succeeded;
 
         /// <summary>
-        /// Add a command button to the ribbon panel.
-        /// Routes all buttons to CommandRouter, which dispatches to the appropriate command.
-        /// Special case: SpoolManagerCommand has its own direct routing.
-        /// TODO: Enhance to support multiple commands by passing context via button ID
+        /// Add a command button to the ribbon panel. Each command is its own
+        /// IExternalCommand, so the button points directly at the command's class.
         /// </summary>
         private void AddCommandButton(RibbonPanel panel, ICommand cmd)
         {
             string asmPath = Assembly.GetExecutingAssembly().Location;
-
-            // Special handling for SpoolManager - use its own class
-            string commandClass = (cmd is SpoolManagerCommand)
-                ? typeof(SpoolManagerCommand).FullName
-                : typeof(CommandRouter).FullName;
+            string commandClass = cmd.GetType().FullName;
 
             var btnData = new PushButtonData(
                 cmd.Id,

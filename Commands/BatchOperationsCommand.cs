@@ -16,12 +16,31 @@ namespace RevitSpoolCopy.Commands
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
-    public class BatchOperationsCommand : ICommand
+    public class BatchOperationsCommand : ICommand, IExternalCommand
     {
         public string Id => "BatchOperations";
         public string DisplayName => "Batch\nOps";
         public string ToolTip => "Bulk operations on selected parts (clear, set, report).";
         public string LongDescription => "Clear Spool, set Spool to value, or report summary of selected fabrication parts.";
+
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            try
+            {
+                Logger.Info($"Execute '{Id}' begin");
+                UIDocument uidoc = commandData.Application.ActiveUIDocument;
+                string msg = "";
+                bool success = Execute(uidoc, msg);
+                Logger.Info($"Execute '{Id}' end -> {(success ? "Succeeded" : "Failed")}");
+                return success ? Result.Succeeded : Result.Failed;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"{Id}.Execute", ex);
+                message = $"Error: {ex.Message}\n\nDetails logged to:\n{Logger.LogFilePath}";
+                return Result.Failed;
+            }
+        }
 
         public bool Execute(UIDocument uidoc, string message)
         {

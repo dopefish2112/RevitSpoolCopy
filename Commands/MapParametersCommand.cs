@@ -16,12 +16,31 @@ namespace RevitSpoolCopy.Commands
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
-    public class MapParametersCommand : ICommand
+    public class MapParametersCommand : ICommand, IExternalCommand
     {
         public string Id => "MapParameters";
         public string DisplayName => "Map\nParameters";
         public string ToolTip => "Map one parameter to another on selected fabrication parts.";
         public string LongDescription => "Select source and target parameters, apply mapping to selected fabrication parts. Mapping is saved for future use.";
+
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            try
+            {
+                Logger.Info($"Execute '{Id}' begin");
+                UIDocument uidoc = commandData.Application.ActiveUIDocument;
+                string msg = "";
+                bool success = Execute(uidoc, msg);
+                Logger.Info($"Execute '{Id}' end -> {(success ? "Succeeded" : "Failed")}");
+                return success ? Result.Succeeded : Result.Failed;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"{Id}.Execute", ex);
+                message = $"Error: {ex.Message}\n\nDetails logged to:\n{Logger.LogFilePath}";
+                return Result.Failed;
+            }
+        }
 
         public bool Execute(UIDocument uidoc, string message)
         {
