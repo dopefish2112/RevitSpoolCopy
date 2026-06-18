@@ -8,12 +8,16 @@ namespace RevitSpoolCopy
 {
     /// <summary>
     /// Routes ribbon button clicks to the appropriate ICommand implementation.
-    /// This is the single IExternalCommand entry point.
+    /// This is the single IExternalCommand entry point for all commands.
+    /// Commands register themselves via SetActiveCommand() before button click.
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
     public class CommandRouter : IExternalCommand
     {
+        private static ICommand _activeCommand = null;
+        private static readonly object _lock = new object();
+
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             try
@@ -27,10 +31,20 @@ namespace RevitSpoolCopy
                     return Result.Failed;
                 }
 
-                // Route to the appropriate command. For MVP, always route to CopyAssemblyName.
-                // TODO: Implement button tag or context-based routing for multiple commands
+                // Get the active command (set by button activation)
+                ICommand cmd = null;
+                lock (_lock)
+                {
+                    cmd = _activeCommand;
+                    _activeCommand = null; // Reset for next click
+                }
 
-                var cmd = new CopyAssemblyNameCommand();
+                if (cmd == null)
+                {
+                    message = "No command registered.";
+                    return Result.Failed;
+                }
+
                 string msg = "";
                 bool success = cmd.Execute(uidoc, msg);
                 message = msg;
@@ -41,6 +55,17 @@ namespace RevitSpoolCopy
             {
                 message = $"Error: {ex.Message}";
                 return Result.Failed;
+            }
+        }
+
+        /// <summary>
+        /// Register the command to execute on next button click.
+        /// </summary>
+        public static void SetActiveCommand(ICommand command)
+        {
+            lock (_lock)
+            {
+                _activeCommand = command;
             }
         }
     }
