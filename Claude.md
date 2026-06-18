@@ -106,10 +106,13 @@ test, on `windows-latest`. No Revit install required (NuGet ref assemblies).
 ✅ Batch Ops dialog extended: model-wide spool checklist + two new operations.
 ✅ Op "Export selected spools to MAJ" — one .MAJ per spool into a chosen folder
    (FabricationJobExporter + Microsoft.Win32.OpenFolderDialog).
-✅ Op "Create publish set + isolated view per spool" — View3D.CreateIsometric +
-   IsolateElementsTemporary→permanent, gathered into a ViewSheetSet (SpoolViewPublisher).
-✅ Pure SpoolExportLogic (spool→part-id filter, MAJ filename sanitize, view naming) + 16 tests.
-   Runtime-untested in Revit: MAJ config dependency, PrintManager publish-set save path.
+✅ Op "Create publish set + ONE isolated 3D view of all selected spools" —
+   View3D.CreateIsometric + IsolateElementsTemporary→permanent over the union of selected
+   parts, saved into a ViewSheetSet (SpoolViewPublisher).
+✅ MAJ export guarded by FabricationConfigHelper.IsConfigurationLoaded (aborts with guidance
+   if no Fabrication Configuration is loaded).
+✅ Pure SpoolExportLogic (spool→part-id filter, MAJ filename sanitize, view + combined naming)
+   + 20 tests. Runtime-untested in Revit: PrintManager publish-set save path.
 
 #### Original plan (for reference)
 Extend **Batch Operations** to act on a selected group of spools (multi-select from the

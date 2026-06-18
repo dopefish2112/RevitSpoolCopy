@@ -95,5 +95,34 @@ namespace RevitSpoolCopy.Tests.Models
             Assert.Equal("Spool - SP-01", SpoolExportLogic.ViewName("SP-01"));
             Assert.Equal("Spool - (empty)", SpoolExportLogic.ViewName(""));
         }
+
+        // ---- CombinedViewName ----
+
+        [Fact]
+        public void CombinedViewName_Empty_ReturnsSpools()
+        {
+            Assert.Equal("Spools", SpoolExportLogic.CombinedViewName(null));
+            Assert.Equal("Spools", SpoolExportLogic.CombinedViewName(new List<string>()));
+        }
+
+        [Fact]
+        public void CombinedViewName_Single_UsesSpoolPrefix()
+        {
+            Assert.Equal("Spool - SP-01", SpoolExportLogic.CombinedViewName(new List<string> { "SP-01" }));
+        }
+
+        [Fact]
+        public void CombinedViewName_FewListsAll()
+        {
+            Assert.Equal("Spools - SP-01, SP-02",
+                SpoolExportLogic.CombinedViewName(new List<string> { "SP-01", "SP-02" }));
+        }
+
+        [Fact]
+        public void CombinedViewName_ManyTruncatesWithMore()
+        {
+            Assert.Equal("Spools - SP-01, SP-02, SP-03 +2 more",
+                SpoolExportLogic.CombinedViewName(new List<string> { "SP-01", "SP-02", "SP-03", "SP-04", "SP-05" }));
+        }
     }
 }

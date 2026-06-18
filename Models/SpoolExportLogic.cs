@@ -74,5 +74,26 @@ namespace RevitSpoolCopy.Models
         /// <summary>Build a stable, readable view name for a spool's isolated view.</summary>
         public static string ViewName(string spoolName) =>
             "Spool - " + NormalizeSpool(spoolName);
+
+        /// <summary>
+        /// Build a readable name for a single view/publish set covering several spools.
+        /// Lists up to three spool names, then "+N more". Empty input yields "Spools".
+        /// </summary>
+        public static string CombinedViewName(IList<string> spoolNames)
+        {
+            if (spoolNames == null || spoolNames.Count == 0)
+                return "Spools";
+            if (spoolNames.Count == 1)
+                return "Spool - " + NormalizeSpool(spoolNames[0]);
+
+            const int maxShown = 3;
+            var shown = new List<string>();
+            for (int i = 0; i < spoolNames.Count && i < maxShown; i++)
+                shown.Add(NormalizeSpool(spoolNames[i]));
+
+            string list = string.Join(", ", shown);
+            int extra = spoolNames.Count - shown.Count;
+            return extra > 0 ? $"Spools - {list} +{extra} more" : $"Spools - {list}";
+        }
     }
 }

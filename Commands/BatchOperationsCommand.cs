@@ -127,6 +127,17 @@ namespace RevitSpoolCopy.Commands
 
         private bool ExecuteExportMaj(Document doc, List<FabricationPart> allParts, List<string> selectedSpools)
         {
+            // MAJ export requires a loaded Fabrication Configuration; without one the API
+            // errors or writes empty files. (Largely moot — no config means no fab parts —
+            // but guard anyway to fail clearly instead of erroring.)
+            if (!FabricationConfigHelper.IsConfigurationLoaded(doc))
+            {
+                TaskDialog.Show("Export MAJ",
+                    "No Fabrication Configuration is loaded in this project.\n\n" +
+                    "Load one via Systems tab > Fabrication Settings, then retry the export.");
+                return false;
+            }
+
             var folderDialog = new OpenFolderDialog { Title = "Choose a folder for the MAJ files" };
             if (folderDialog.ShowDialog() != true)
                 return false;
@@ -168,36 +179,42 @@ namespace RevitSpoolCopy.Commands
 
         private bool ExecuteCreatePublishSet(Document doc, List<FabricationPart> allParts, List<string> selectedSpools)
         {
-            var spoolParts = GroupSelectedSpoolParts(allParts, selectedSpools);
-            if (spoolParts.Count == 0)
+            // Union of all selected spools' parts -> a single isolated 3D view.
+            var ids = SpoolExportLogic.CollectIdsForSpools(
+                allParts.Select(p => new KeyValuePair<string, ElementId>(p.SpoolName, p.Id)),
+                new HashSet<string>(selectedSpools));
+
+            if (ids.Count == 0)
             {
                 TaskDialog.Show("Publish Set", "No parts found for the selected spools.");
                 return false;
             }
 
-            List<View3D> views;
-            using (var t = new Transaction(doc, "Create Spool Views"))
+            string name = SpoolExportLogic.CombinedViewName(selectedSpools);
+
+            View3D view;
+            using (var t = new Transaction(doc, "Create Spool View"))
             {
                 t.Start();
-                views = SpoolViewPublisher.CreateIsolatedViews(doc, spoolParts);
+                view = SpoolViewPublisher.CreateIsolatedView(doc, ids, name);
                 t.Commit();
             }
 
-            if (views.Count == 0)
+            if (view == null)
             {
-                TaskDialog.Show("Publish Set", "Could not create any spool views. See log:\n" + Logger.LogFilePath);
+                TaskDialog.Show("Publish Set", "Could not create the spool view. See log:\n" + Logger.LogFilePath);
                 return false;
             }
 
-            // Print/publish-set settings are not transaction-bound; save after the views commit.
-            string setName = $"Spools ({views.Count})";
-            bool setSaved = SpoolViewPublisher.SaveAsPublishSet(doc, views, setName);
+            // Print/publish-set settings are not transaction-bound; save after the view commits.
+            bool setSaved = SpoolViewPublisher.SaveAsPublishSet(doc, new List<View3D> { view }, name);
 
             var sb = new StringBuilder();
-            sb.AppendLine($"Created {views.Count} isolated spool view(s).");
+            sb.AppendLine($"Created 3D view \"{view.Name}\" isolated to {ids.Count} part(s) " +
+                          $"from {selectedSpools.Count} spool(s).");
             sb.AppendLine(setSaved
-                ? $"Publish set saved (View/Sheet Set named like \"{setName}\")."
-                : $"Views created, but saving the publish set failed (see log: {Logger.LogFilePath}).");
+                ? $"Publish set saved (View/Sheet Set \"{view.Name}\")."
+                : $"View created, but saving the publish set failed (see log: {Logger.LogFilePath}).");
             TaskDialog.Show("Publish Set", sb.ToString().TrimEnd());
             return setSaved;
         }

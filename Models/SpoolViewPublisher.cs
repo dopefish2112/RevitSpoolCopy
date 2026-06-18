@@ -12,22 +12,20 @@ namespace RevitSpoolCopy.Models
     public static class SpoolViewPublisher
     {
         /// <summary>
-        /// For each spool create a 3D view isolated to its parts. Must run inside an open
-        /// transaction. Returns the created views (in spool order). Failures per spool are
-        /// logged and skipped.
+        /// Create a single 3D view isolated to all the given parts (the union of the selected
+        /// spools). Must run inside an open transaction. Returns the view, or null on failure.
         /// </summary>
-        public static List<View3D> CreateIsolatedViews(
-            Document doc, IList<KeyValuePair<string, ICollection<ElementId>>> spoolParts)
+        public static View3D CreateIsolatedView(
+            Document doc, ICollection<ElementId> partIds, string viewName)
         {
-            var created = new List<View3D>();
-            if (doc == null || spoolParts == null)
-                return created;
+            if (doc == null || partIds == null || partIds.Count == 0)
+                return null;
 
             ElementId vftId = Get3DViewFamilyTypeId(doc);
             if (vftId == ElementId.InvalidElementId)
             {
-                Logger.Warn("CreateIsolatedViews: no 3D ViewFamilyType found.");
-                return created;
+                Logger.Warn("CreateIsolatedView: no 3D ViewFamilyType found.");
+                return null;
             }
 
             var existingNames = new HashSet<string>(
@@ -35,32 +33,22 @@ namespace RevitSpoolCopy.Models
                     .Where(v => !v.IsTemplate).Select(v => v.Name),
                 StringComparer.OrdinalIgnoreCase);
 
-            foreach (var pair in spoolParts)
+            try
             {
-                string spool = pair.Key;
-                ICollection<ElementId> ids = pair.Value;
-                if (ids == null || ids.Count == 0)
-                    continue;
+                var view = View3D.CreateIsometric(doc, vftId);
+                view.Name = UniqueName(string.IsNullOrWhiteSpace(viewName) ? "Spools" : viewName, existingNames);
 
-                try
-                {
-                    var view = View3D.CreateIsometric(doc, vftId);
-                    view.Name = UniqueName(SpoolExportLogic.ViewName(spool), existingNames);
-                    existingNames.Add(view.Name);
+                // Show only the selected spools' parts.
+                view.IsolateElementsTemporary(partIds);
+                view.ConvertTemporaryHideIsolateToPermanent();
 
-                    // Show only this spool's parts.
-                    view.IsolateElementsTemporary(ids);
-                    view.ConvertTemporaryHideIsolateToPermanent();
-
-                    created.Add(view);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"CreateIsolatedViews(spool '{spool}')", ex);
-                }
+                return view;
             }
-
-            return created;
+            catch (Exception ex)
+            {
+                Logger.Error($"CreateIsolatedView('{viewName}')", ex);
+                return null;
+            }
         }
 
         /// <summary>

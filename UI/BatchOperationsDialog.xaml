@@ -29,7 +29,7 @@
                 <Separator Margin="0,6"/>
                 <RadioButton Name="ExportMajRadio" Content="Export selected spools to MAJ (one file per spool)"
                              Margin="0,4" Checked="Operation_Checked"/>
-                <RadioButton Name="PublishSetRadio" Content="Create publish set + isolated view per selected spool"
+                <RadioButton Name="PublishSetRadio" Content="Create publish set + one isolated 3D view of all selected spools"
                              Margin="0,4" Checked="Operation_Checked"/>
             </StackPanel>
         </GroupBox>
