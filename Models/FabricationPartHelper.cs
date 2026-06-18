@@ -15,23 +15,10 @@ namespace RevitSpoolCopy.Models
         /// </summary>
         public static string GetParameterValue(Element element, string paramName)
         {
-            if (element == null || string.IsNullOrWhiteSpace(paramName))
+            if (element == null)
                 return null;
 
-            // Try builtin ASSEMBLY_NAME if that's what we're looking for
-            if (paramName.Equals("Assembly Name", StringComparison.OrdinalIgnoreCase))
-            {
-                Parameter p = element.get_Parameter(BuiltInParameter.ASSEMBLY_NAME);
-                if (p != null && p.HasValue)
-                    return p.StorageType == StorageType.String ? p.AsString() : p.AsValueString();
-            }
-
-            // Fall back to custom parameter with same name
-            Parameter custom = element.LookupParameter(paramName);
-            if (custom != null && custom.HasValue)
-                return custom.StorageType == StorageType.String ? custom.AsString() : custom.AsValueString();
-
-            return null;
+            return ParameterLogic.GetMappedSourceValue(new RevitElementView(element), paramName);
         }
 
         /// <summary>

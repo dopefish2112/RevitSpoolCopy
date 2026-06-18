@@ -90,12 +90,19 @@ test, on `windows-latest`. No Revit install required (NuGet ref assemblies).
 
 ### Phase 3 (In Progress)
 ✅ xUnit test project (RevitSpoolCopy.Tests) + RevitSpoolCopy.sln
-✅ 12 passing tests (ParameterMappingConfig round-trip, BatchOperation, ParameterMapping)
 ✅ Revit API via NuGet ref assemblies (CI-friendly, no local Revit to compile)
 ✅ GitHub Actions CI (.github/workflows/ci.yml: restore/build/test on push+PR)
-- [ ] Tests for ParameterDiscoveryHelper / FabricationPartHelper — blocked: these take
-      sealed Revit types (Element/FabricationPart/Document) with no interfaces/ctors.
-      Needs a refactor to extract pure logic, or Revit-runtime integration tests.
+✅ Testability seam: IElementView/IParameterView + pure ParameterLogic; Revit helpers
+   (FabricationPartHelper/ParameterDiscoveryHelper) are thin adapters over RevitElementView
+✅ 33 passing tests (config round-trip, BatchOperation, ParameterMapping, ParameterLogic
+   read/write/discovery + Assembly Name special-casing, via in-memory fakes)
 - [ ] Release notes and version tagging
 - [ ] Revit App Store publishing (optional)
+
+### Testability pattern
+Revit types (Element/FabricationPart/Parameter) are sealed with no public ctors, so they
+can't be mocked directly. Decision logic lives in `ParameterLogic` over the Revit-free
+`IElementView`/`IParameterView` seam; `RevitElementView`/`RevitParameterView` adapt the
+real Revit objects. Tests drive the logic with `FakeElement`/`FakeParameter`. Add new
+parameter logic to `ParameterLogic` (testable), not to the Revit adapters.
 

@@ -17,22 +17,11 @@ namespace RevitSpoolCopy.Models
         /// </summary>
         public static List<string> GetAvailableParameters(List<FabricationPart> parts)
         {
-            var paramNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (parts == null)
+                return new List<string>();
 
-            foreach (var part in parts)
-            {
-                if (part == null) continue;
-
-                // Add all builtin parameters
-                var builtins = part.Parameters;
-                foreach (Parameter p in builtins)
-                {
-                    if (p != null && !string.IsNullOrWhiteSpace(p.Definition?.Name))
-                        paramNames.Add(p.Definition.Name);
-                }
-            }
-
-            return paramNames.OrderBy(x => x).ToList();
+            var views = parts.Where(p => p != null).Select(p => (IElementView)new RevitElementView(p));
+            return ParameterLogic.CollectParameterNames(views);
         }
 
         /// <summary>
@@ -40,21 +29,10 @@ namespace RevitSpoolCopy.Models
         /// </summary>
         public static string ReadParameterValue(Element element, string paramName)
         {
-            if (element == null || string.IsNullOrWhiteSpace(paramName))
+            if (element == null)
                 return null;
 
-            Parameter p = element.LookupParameter(paramName);
-            if (p == null || !p.HasValue)
-                return null;
-
-            try
-            {
-                return p.StorageType == StorageType.String ? p.AsString() : p.AsValueString();
-            }
-            catch
-            {
-                return null;
-            }
+            return ParameterLogic.ReadValue(new RevitElementView(element), paramName);
         }
 
         /// <summary>
@@ -62,25 +40,10 @@ namespace RevitSpoolCopy.Models
         /// </summary>
         public static bool WriteParameterValue(Element element, string paramName, string value)
         {
-            if (element == null || string.IsNullOrWhiteSpace(paramName))
+            if (element == null)
                 return false;
 
-            Parameter p = element.LookupParameter(paramName);
-            if (p == null || p.IsReadOnly)
-                return false;
-
-            try
-            {
-                if (p.StorageType == StorageType.String)
-                    p.Set(value ?? "");
-                else
-                    p.SetValueString(value ?? "");
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            return ParameterLogic.WriteValue(new RevitElementView(element), paramName, value);
         }
     }
 }
