@@ -15,6 +15,12 @@
     <RevitDir Condition="'$(RevitDir)'==''">C:\Program Files\Autodesk\Revit 2025</RevitDir>
   </PropertyGroup>
 
+  <!-- Test project nested in this dir. Exclude from default compile glob. -->
+  <ItemGroup>
+    <Compile Remove="RevitSpoolCopy.Tests\**" />
+    <None Remove="RevitSpoolCopy.Tests\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="RevitAPI">
       <HintPath>$(RevitDir)\RevitAPI.dll</HintPath>

@@ -28,3 +28,6 @@ obj/
 
 ## Project-specific
 *.dll.config
+
+## Claude Code local
+.claude/settings.local.json

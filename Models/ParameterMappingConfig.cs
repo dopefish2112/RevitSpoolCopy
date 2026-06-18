@@ -22,14 +22,20 @@ namespace RevitSpoolCopy.Models
         /// <summary>
         /// Load mappings from JSON config file. Returns empty collection if file doesn't exist.
         /// </summary>
-        public static ParameterMappingCollection Load()
+        public static ParameterMappingCollection Load() => Load(ConfigFilePath);
+
+        /// <summary>
+        /// Load mappings from a specific path. Returns empty collection if file doesn't exist.
+        /// Overload exists for testability (inject temp path).
+        /// </summary>
+        public static ParameterMappingCollection Load(string path)
         {
             try
             {
-                if (!File.Exists(ConfigFilePath))
+                if (!File.Exists(path))
                     return new ParameterMappingCollection();
 
-                string json = File.ReadAllText(ConfigFilePath);
+                string json = File.ReadAllText(path);
                 var config = JsonSerializer.Deserialize<ParameterMappingCollection>(json);
                 return config ?? new ParameterMappingCollection();
             }
@@ -43,17 +49,23 @@ namespace RevitSpoolCopy.Models
         /// <summary>
         /// Save mappings to JSON config file. Creates directory if needed.
         /// </summary>
-        public static bool Save(ParameterMappingCollection config)
+        public static bool Save(ParameterMappingCollection config) => Save(config, ConfigFilePath);
+
+        /// <summary>
+        /// Save mappings to a specific path. Overload exists for testability (inject temp path).
+        /// </summary>
+        public static bool Save(ParameterMappingCollection config, string path)
         {
             try
             {
-                if (!Directory.Exists(ConfigDirectory))
-                    Directory.CreateDirectory(ConfigDirectory);
+                string dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
 
                 config.LastModified = DateTime.Now;
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(config, options);
-                File.WriteAllText(ConfigFilePath, json);
+                File.WriteAllText(path, json);
                 return true;
             }
             catch (Exception ex)
