@@ -99,7 +99,19 @@ test, on `windows-latest`. No Revit install required (NuGet ref assemblies).
 - [ ] Release notes and version tagging
 - [ ] Revit App Store publishing (optional)
 
-### Phase 4 (Planned) — Spool-driven export & publishing
+### Phase 4 (Implemented, pending Revit runtime test) — Spool-driven export & publishing
+✅ MAJ export confirmed in public API: `FabricationPart.SaveAsFabricationJob(doc, ISet<ElementId>,
+   filename, FabricationSaveJobOptions(bool))` (Autodesk.Revit.DB.Fabrication). Needs an open
+   transaction + a loaded Fabrication Configuration.
+✅ Batch Ops dialog extended: model-wide spool checklist + two new operations.
+✅ Op "Export selected spools to MAJ" — one .MAJ per spool into a chosen folder
+   (FabricationJobExporter + Microsoft.Win32.OpenFolderDialog).
+✅ Op "Create publish set + isolated view per spool" — View3D.CreateIsometric +
+   IsolateElementsTemporary→permanent, gathered into a ViewSheetSet (SpoolViewPublisher).
+✅ Pure SpoolExportLogic (spool→part-id filter, MAJ filename sanitize, view naming) + 16 tests.
+   Runtime-untested in Revit: MAJ config dependency, PrintManager publish-set save path.
+
+#### Original plan (for reference)
 Extend **Batch Operations** to act on a selected group of spools (multi-select from the
 spool list, like SpoolManager's grouping). Two new operations:
 

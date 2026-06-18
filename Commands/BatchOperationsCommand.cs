@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Microsoft.Win32;
 using RevitSpoolCopy.Models;
 using RevitSpoolCopy.UI;
 
@@ -52,24 +54,24 @@ namespace RevitSpoolCopy.Commands
 
             Document doc = uidoc.Document;
 
-            // Get selected fabrication parts
-            var elementIds = uidoc.Selection.GetElementIds();
-            if (elementIds.Count == 0)
-            {
-                TaskDialog.Show("Batch Operations", "Select one or more fabrication parts first.");
-                return false;
-            }
+            // Selected parts (for the selection-based operations; may be empty).
+            var selectedParts = FabricationPartHelper.FilterFabricationParts(
+                uidoc.Selection.GetElementIds(), doc);
 
-            var parts = FabricationPartHelper.FilterFabricationParts(elementIds, doc);
-            if (parts.Count == 0)
-            {
-                TaskDialog.Show("Batch Operations",
-                    "No fabrication parts in selection. Select MEP fabrication parts and retry.");
-                return false;
-            }
+            // All fabrication parts in the model, grouped by spool (for the spool-based ops).
+            var allParts = new FilteredElementCollector(doc)
+                .OfClass(typeof(FabricationPart))
+                .Cast<FabricationPart>()
+                .ToList();
+
+            var spoolGroups = allParts
+                .GroupBy(p => SpoolExportLogic.NormalizeSpool(p.SpoolName))
+                .OrderBy(g => g.Key)
+                .Select(g => new SpoolInfo { SpoolName = g.Key, PartCount = g.Count() })
+                .ToList();
 
             // Show dialog to select operation
-            var dialog = new BatchOperationsDialog();
+            var dialog = new BatchOperationsDialog(spoolGroups);
             bool? result = dialog.ShowDialog();
 
             if (result != true)
@@ -79,18 +81,125 @@ namespace RevitSpoolCopy.Commands
             if (operation == null)
                 return false;
 
+            // Selection-based operations require a current selection of fabrication parts.
+            bool isSelectionOp = operation.OperationType == BatchOperationType.ClearSpool
+                || operation.OperationType == BatchOperationType.SetSpoolValue
+                || operation.OperationType == BatchOperationType.ReportSummary;
+            if (isSelectionOp && selectedParts.Count == 0)
+            {
+                TaskDialog.Show("Batch Operations",
+                    "No fabrication parts in selection. Select MEP fabrication parts and retry.");
+                return false;
+            }
+
             // Execute operation
             switch (operation.OperationType)
             {
                 case BatchOperationType.ClearSpool:
-                    return ExecuteClearSpool(doc, parts);
+                    return ExecuteClearSpool(doc, selectedParts);
                 case BatchOperationType.SetSpoolValue:
-                    return ExecuteSetSpool(doc, parts, operation.TargetValue);
+                    return ExecuteSetSpool(doc, selectedParts, operation.TargetValue);
                 case BatchOperationType.ReportSummary:
-                    return ExecuteReportSummary(parts);
+                    return ExecuteReportSummary(selectedParts);
+                case BatchOperationType.ExportMajBySpool:
+                    return ExecuteExportMaj(doc, allParts, operation.SelectedSpools);
+                case BatchOperationType.CreatePublishSetBySpool:
+                    return ExecuteCreatePublishSet(doc, allParts, operation.SelectedSpools);
                 default:
                     return false;
             }
+        }
+
+        /// <summary>Group selected spools' parts (preserving spool selection order).</summary>
+        private static List<KeyValuePair<string, ICollection<ElementId>>> GroupSelectedSpoolParts(
+            List<FabricationPart> allParts, List<string> selectedSpools)
+        {
+            var lookup = allParts.ToLookup(p => SpoolExportLogic.NormalizeSpool(p.SpoolName));
+            var result = new List<KeyValuePair<string, ICollection<ElementId>>>();
+            foreach (var spool in selectedSpools)
+            {
+                var ids = lookup[spool].Select(p => p.Id).ToList();
+                if (ids.Count > 0)
+                    result.Add(new KeyValuePair<string, ICollection<ElementId>>(spool, ids));
+            }
+            return result;
+        }
+
+        private bool ExecuteExportMaj(Document doc, List<FabricationPart> allParts, List<string> selectedSpools)
+        {
+            var folderDialog = new OpenFolderDialog { Title = "Choose a folder for the MAJ files" };
+            if (folderDialog.ShowDialog() != true)
+                return false;
+            string folder = folderDialog.FolderName;
+
+            var spoolParts = GroupSelectedSpoolParts(allParts, selectedSpools);
+            int filesWritten = 0, partsExported = 0;
+            var failures = new List<string>();
+
+            // SaveAsFabricationJob must run inside a transaction (it triggers internal parsing).
+            using (var t = new Transaction(doc, "Export Spools to MAJ"))
+            {
+                t.Start();
+                foreach (var pair in spoolParts)
+                {
+                    string path = Path.Combine(folder, SpoolExportLogic.MajFileName(pair.Key));
+                    ISet<ElementId> ids = new HashSet<ElementId>(pair.Value);
+                    if (FabricationJobExporter.SaveJob(doc, ids, path))
+                    {
+                        filesWritten++;
+                        partsExported += ids.Count;
+                    }
+                    else
+                    {
+                        failures.Add(pair.Key);
+                    }
+                }
+                t.Commit();
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Exported {filesWritten} MAJ file(s) ({partsExported} parts) to:");
+            sb.AppendLine(folder);
+            if (failures.Count > 0)
+                sb.AppendLine($"\nFailed spools: {string.Join(", ", failures)}\n(See log: {Logger.LogFilePath})");
+            TaskDialog.Show("Export MAJ", sb.ToString().TrimEnd());
+            return failures.Count == 0;
+        }
+
+        private bool ExecuteCreatePublishSet(Document doc, List<FabricationPart> allParts, List<string> selectedSpools)
+        {
+            var spoolParts = GroupSelectedSpoolParts(allParts, selectedSpools);
+            if (spoolParts.Count == 0)
+            {
+                TaskDialog.Show("Publish Set", "No parts found for the selected spools.");
+                return false;
+            }
+
+            List<View3D> views;
+            using (var t = new Transaction(doc, "Create Spool Views"))
+            {
+                t.Start();
+                views = SpoolViewPublisher.CreateIsolatedViews(doc, spoolParts);
+                t.Commit();
+            }
+
+            if (views.Count == 0)
+            {
+                TaskDialog.Show("Publish Set", "Could not create any spool views. See log:\n" + Logger.LogFilePath);
+                return false;
+            }
+
+            // Print/publish-set settings are not transaction-bound; save after the views commit.
+            string setName = $"Spools ({views.Count})";
+            bool setSaved = SpoolViewPublisher.SaveAsPublishSet(doc, views, setName);
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Created {views.Count} isolated spool view(s).");
+            sb.AppendLine(setSaved
+                ? $"Publish set saved (View/Sheet Set named like \"{setName}\")."
+                : $"Views created, but saving the publish set failed (see log: {Logger.LogFilePath}).");
+            TaskDialog.Show("Publish Set", sb.ToString().TrimEnd());
+            return setSaved;
         }
 
         private bool ExecuteClearSpool(Document doc, List<FabricationPart> parts)

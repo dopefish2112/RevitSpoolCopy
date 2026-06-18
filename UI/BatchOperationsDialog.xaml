@@ -1,7 +1,7 @@
 <Window x:Class="RevitSpoolCopy.UI.BatchOperationsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Batch Operations" Height="350" Width="450"
+        Title="Batch Operations" Height="460" Width="460"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="#F0F0F0">
@@ -14,39 +14,72 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <TextBlock Grid.Row="0" Text="Batch Operations" 
+        <TextBlock Grid.Row="0" Text="Batch Operations"
                    FontSize="14" FontWeight="Bold" Margin="0,0,0,12"/>
 
         <!-- Operation Selection -->
         <GroupBox Grid.Row="1" Header="Select Operation" Margin="0,0,0,12" Padding="12">
             <StackPanel>
-                <RadioButton Name="ClearSpoolRadio" Content="Clear Spool" 
-                             Margin="0,6" Checked="ClearSpoolRadio_Checked"/>
-                <RadioButton Name="SetSpoolRadio" Content="Set Spool to Value" 
-                             Margin="0,6" Checked="SetSpoolRadio_Checked"/>
-                <RadioButton Name="ReportRadio" Content="Report Summary (no changes)" 
-                             Margin="0,6" Checked="ReportRadio_Checked"/>
+                <RadioButton Name="ClearSpoolRadio" Content="Clear Spool (selected parts)"
+                             Margin="0,4" Checked="Operation_Checked"/>
+                <RadioButton Name="SetSpoolRadio" Content="Set Spool to Value (selected parts)"
+                             Margin="0,4" Checked="Operation_Checked"/>
+                <RadioButton Name="ReportRadio" Content="Report Summary (selected parts, no changes)"
+                             Margin="0,4" Checked="Operation_Checked"/>
+                <Separator Margin="0,6"/>
+                <RadioButton Name="ExportMajRadio" Content="Export selected spools to MAJ (one file per spool)"
+                             Margin="0,4" Checked="Operation_Checked"/>
+                <RadioButton Name="PublishSetRadio" Content="Create publish set + isolated view per selected spool"
+                             Margin="0,4" Checked="Operation_Checked"/>
             </StackPanel>
         </GroupBox>
 
-        <!-- Value Input (for Set Spool) -->
-        <Grid Grid.Row="2" Name="ValueInputPanel" Visibility="Collapsed" Margin="0,0,0,12">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+        <!-- Dynamic area: value input OR spool checklist -->
+        <Grid Grid.Row="2" Margin="0,0,0,12">
+            <!-- Value Input (for Set Spool) -->
+            <Grid Name="ValueInputPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Spool Value:" FontWeight="Bold" Margin="0,0,0,6"/>
+                <TextBox Grid.Row="1" Name="ValueTextBox" Padding="8" FontSize="12"
+                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+            </Grid>
 
-            <TextBlock Grid.Row="0" Text="Spool Value:" FontWeight="Bold" Margin="0,0,0,6"/>
-            <TextBox Grid.Row="1" Name="ValueTextBox" Padding="8" FontSize="12"
-                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+            <!-- Spool checklist (for MAJ export / publish set) -->
+            <Grid Name="SpoolSelectPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                    <TextBlock Text="Select spools:" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                        <Button Content="All" Padding="8,2" Margin="4,0" Click="SelectAll_Click"/>
+                        <Button Content="None" Padding="8,2" Margin="4,0" Click="SelectNone_Click"/>
+                    </StackPanel>
+                </DockPanel>
+                <Border Grid.Row="1" BorderBrush="#C0C0C0" BorderThickness="1" Background="White">
+                    <ListBox Name="SpoolListBox" BorderThickness="0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          Content="{Binding Display}" Margin="2"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- Buttons -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Name="ApplyButton" Content="Apply" 
+            <Button Name="ApplyButton" Content="Apply"
                     Padding="16,8" Margin="6,0" Click="ApplyButton_Click"
                     Background="#007ACC" Foreground="White" FontWeight="Bold"/>
-            <Button Name="CancelButton" Content="Cancel" 
+            <Button Name="CancelButton" Content="Cancel"
                     Padding="16,8" Margin="6,0" Click="CancelButton_Click"
                     Background="#E0E0E0" Foreground="Black"/>
         </StackPanel>
