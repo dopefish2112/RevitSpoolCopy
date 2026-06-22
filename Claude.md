@@ -7,34 +7,36 @@
 RevitSpoolCopy/
 ├── App.cs                      (IExternalApplication, ribbon bootstrap)
 ├── Commands/
-│   ├── ICommand.cs             (interface for all commands)
-│   ├── CommandRouter.cs        (IExternalCommand, dispatches to commands)
-│   ├── CopyAssemblyNameCommand.cs  (MVP: copy Assembly Name → Spool)
-│   ├── MapParametersCommand.cs (Phase 2a: map any param → any param)
-│   └── BatchOperationsCommand.cs (stub: coming Phase 2b)
+│   ├── ICommand.cs             (shared metadata interface for all commands)
+│   ├── CopyAssemblyNameCommand.cs  (copy Assembly Name → Spool + mirror to shared param)
+│   ├── MapParametersCommand.cs (map any param → any param)
+│   ├── BatchOperationsCommand.cs (clear/set/report + spool-driven MAJ export & publish set)
+│   └── SpoolManagerCommand.cs  (list/rename/delete spools across the model)
 ├── Models/
-│   ├── FabricationPartHelper.cs (parameter read/write/filter logic)
-│   ├── ParameterMapping.cs (mapping rule model)
-│   ├── ParameterMappingConfig.cs (JSON persistence)
-│   └── ParameterDiscoveryHelper.cs (param discovery & CRUD)
-├── UI/
-│   └── MapParametersDialog.xaml/.xaml.cs (WPF dialog for mapping selection)
-└── deploy.ps1, spec.md, README.md, .gitignore
+│   ├── FabricationPartHelper.cs     (Revit adapter: read/write/filter parts)
+│   ├── ParameterDiscoveryHelper.cs  (Revit adapter: param discovery & CRUD)
+│   ├── ParameterViews.cs / ParameterLogic.cs / RevitElementView.cs (testable seam — see below)
+│   ├── ParameterMapping.cs / ParameterMappingConfig.cs (mapping model + JSON persistence)
+│   ├── BatchOperation.cs            (operation model + enum)
+│   ├── SharedParameterHelper.cs     (auto-create/bind the readable "Spool" shared param)
+│   ├── SpoolExportLogic.cs          (pure: spool→id filter, MAJ filename, view naming)
+│   ├── FabricationJobExporter.cs    (Revit adapter: FabricationPart.SaveAsFabricationJob)
+│   ├── FabricationConfigHelper.cs   (guard: is a Fabrication Configuration loaded?)
+│   ├── SpoolViewPublisher.cs        (Revit adapter: isolated 3D view + ViewSheetSet)
+│   └── Logger.cs                    (append-only file log under %APPDATA%)
+├── UI/  (BatchOperations / MapParameters / SpoolManager dialogs .xaml/.xaml.cs)
+├── RevitSpoolCopy.Tests/  (xUnit; 53 tests over the pure logic)
+└── deploy.ps1, spec.md, README.md, CHANGELOG.md, .gitignore
 ```
 
 ### Key Design Patterns
 
-**ICommand Interface**
-- All commands implement `ICommand` for consistency
-- `Id`: unique button identifier
-- `DisplayName`, `ToolTip`, `LongDescription`: UI metadata
-- `Execute(uidoc, message)`: command logic
-
-**CommandRouter (IExternalCommand)**
-- Single entry point for all ribbon buttons
-- Routes to appropriate ICommand
-- MVP: routes all buttons → CopyAssemblyNameCommand
-- TODO: enhance with button context or tag to dispatch to different commands
+**Commands are self-routing IExternalCommands**
+- Each command implements both `ICommand` (UI metadata: Id/DisplayName/ToolTip/LongDescription
+  + `Execute(uidoc, message)`) and `IExternalCommand`. App.cs points each ribbon button directly
+  at its own command class (`cmd.GetType().FullName`).
+- The old single `CommandRouter` was removed — it dispatched to a static active-command field that
+  nothing set, which caused a "No command registered" failure on every button but SpoolManager.
 
 **FabricationPartHelper (Static Utilities)**
 - `GetParameterValue(element, paramName)`: read Assembly Name or custom param
@@ -43,8 +45,7 @@ RevitSpoolCopy/
 
 **App.cs (Ribbon Bootstrap)**
 - Creates "Spool Tools" tab and "Fabrication" panel
-- Instantiates all ICommand objects
-- AddCommandButton() wires each to CommandRouter
+- Instantiates all commands; AddCommandButton() wires each button to its own command class
 - Clean separation: one button per command
 
 ### Build & Deploy
@@ -108,7 +109,8 @@ test, on `windows-latest`. No Revit install required (NuGet ref assemblies).
    (FabricationJobExporter + Microsoft.Win32.OpenFolderDialog).
 ✅ Op "Create publish set + ONE isolated 3D view of all selected spools" —
    View3D.CreateIsometric + IsolateElementsTemporary→permanent over the union of selected
-   parts, saved into a ViewSheetSet (SpoolViewPublisher).
+   parts, saved into a ViewSheetSet (SpoolViewPublisher). View name is prompted in the dialog
+   and rejected if it duplicates an existing view.
 ✅ MAJ export guarded by FabricationConfigHelper.IsConfigurationLoaded (aborts with guidance
    if no Fabrication Configuration is loaded).
 ✅ Pure SpoolExportLogic (spool→part-id filter, MAJ filename sanitize, view + combined naming)
